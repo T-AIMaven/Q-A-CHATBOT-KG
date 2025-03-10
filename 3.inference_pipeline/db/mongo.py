@@ -1,4 +1,4 @@
-from llama_index.core import KnowledgeGraphIndex, Document
+from llama_index.core import KnowledgeGraphIndex
 from llama_index.core.graph_stores import SimpleGraphStore
 from llama_index.core.storage.storage_context import StorageContext
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
@@ -9,34 +9,27 @@ from llama_index.core import load_index_from_storage
 from langchain_openai import ChatOpenAI
 from pymongo import MongoClient
 from bson import json_util
-from dotenv import load_dotenv
-from typing import List
-import pandas as pd
+from config import settings
 import logging
 import time
 import json
 import math
 import os
 
-# Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-# Load environment variables from .env file
-load_dotenv()
-# At the top of your file, after imports
-EMBEDDING_MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
+
+EMBEDDING_MODEL_NAME = settings.EMBEDDING_MODEL_ID
 embedding_model = HuggingFaceEmbedding(model_name=EMBEDDING_MODEL_NAME)
 
 # MongoDB setup
-MONGO_DB_URL = os.getenv("MONGO_DB_URL")
-client = MongoClient(MONGO_DB_URL)
-db = client['product-core']
-index_collection = db['xngen-knowledge-base']
+client = MongoClient(settings.MONGO_DB_URL)
+db = client[settings.MONGO_DB_NAME]
+index_collection = db[settings.MONGO_COLLECTION_NAME]
 
 def split_metadata(metadata, max_length=1000):
     if len(json.dumps(metadata)) <= max_length:
         return metadata
-    
     split_metadata = {}
     for key, value in metadata.items():
         if len(json.dumps({key: value})) > max_length:
@@ -50,28 +43,7 @@ class MongoSearchConnector:
         self.documents = self.load_documents()
         self.llm = self.setup_llm()
         self.embedding = embedding_model
-        self.index = self.create_or_load_index("nereus")
-
-    def load_documents(self) -> List[Document]:
-        start_time = time.time()
-        # Read the CSV file
-        df = pd.read_csv("2.csv")
-        documents = []
-        for _, row in df.iterrows():
-            json_doc = row.to_dict()
-            doc_id = str(len(documents))
-            text = "\n".join([f"{key.capitalize()}: {value}" for key, value in json_doc.items() if pd.notna(value)])
-            metadata = {key: value for key, value in json_doc.items() if pd.notna(value)}
-            doc = Document(
-                id=doc_id,
-                text=text
-                # metadata=metadata
-            )
-            documents.append(doc)
-        end_time = time.time()
-        print(f"Load documents time: {end_time - start_time} seconds")
-        
-        return documents
+        self.index = self.load_index("9327bd69-78cf-4591-b06f-86509cb375d8")
 
     def setup_llm(self) -> LangChainLLM:
         api_key = os.getenv("OPENAI_API_KEY")
@@ -81,17 +53,15 @@ class MongoSearchConnector:
         model_name = "sentence-transformers/all-MiniLM-L6-v2"
         return HuggingFaceEmbedding(model_name=model_name)
 
-    def create_or_load_index(self, customer_id: str) -> KnowledgeGraphIndex:
+    def load_index(self, customer_id: str) -> KnowledgeGraphIndex:
         index_chunks = list(index_collection.find({"customer_id": customer_id}).sort("chunk_index", 1))
         if index_chunks:
             start_time = time.time()
             total_chunks = index_chunks[0]["total_chunks"]
             index_json = "".join(chunk["data"] for chunk in index_chunks)
-            
             try:
                 serialized_context = json.loads(index_json)
                 storage_context = StorageContext.from_dict(serialized_context)
-                
                 index = load_index_from_storage(storage_context, embed_model=self.embedding)
                 logger.info(f"Loaded index from MongoDB ({total_chunks} chunks).")
                 end_time = time.time()
@@ -101,7 +71,7 @@ class MongoSearchConnector:
                 logger.info("Creating new index due to JSON decode error.")
                 index = self.create_new_index(customer_id)
         else:
-            index = self.create_new_index(customer_id)
+            return {"type": "error", "response": "No index found for the given customer_id."}
         return index
 
     def create_new_index(self, customer_id: str) -> KnowledgeGraphIndex:
@@ -127,12 +97,9 @@ class MongoSearchConnector:
         storage_context = index.storage_context
         serialized_context = storage_context.to_dict()
         index_json = json.dumps(serialized_context, default=json_util.default)
-        
         chunk_size = 15 * 1024 * 1024  # 15MB chunks
         total_chunks = math.ceil(len(index_json) / chunk_size)
-        
         index_collection.delete_many({"customer_id": customer_id})
-        
         for i in range(total_chunks):
             start = i * chunk_size
             end = (i + 1) * chunk_size
@@ -144,7 +111,6 @@ class MongoSearchConnector:
                 "total_chunks": total_chunks,
                 "data": chunk
             })
-        
         logger.info(f"Saved index to MongoDB in {total_chunks} chunks.")
         end_time = time.time()
         logger.info(f"Save index time: {end_time - start_time} seconds")
@@ -157,10 +123,8 @@ class MongoSearchConnector:
             similarity_top_k=5,  # Adjust this to control the number of relevant nodes
             max_tokens=4096  # Adjust based on your model's capabilities
         )
-
         response = query_engine.query(query)
 
-        print("Response: ", response.response)
         return {"type": "structured", "response": response.response}
 
 def structured_search_query(query: str) -> dict:

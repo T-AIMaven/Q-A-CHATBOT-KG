@@ -3,21 +3,22 @@ from pydantic_settings import BaseSettings
 class AppSettings(BaseSettings):
 
     # Embeddings config
+    _file_path: str = '1.datacollection_pipeline/datasets/ground_truth.csv'
+    ground_truth_csv: str = '1.datacollection_pipeline/datasets/ground_truth.csv'
+
+    OPENAI_MODEL_ID: str = "gpt-4"
+    OPENAI_API_KEY: str = ""
+    
+    MONGO_DB_URL: str = "mongodb://localhost:27017"
+    MONGO_DB_NAME: str = "product-core"
+    MONGO_COLLECTION_NAME: str = "xngen-knowledge-base"
+    # Embeddings config
     EMBEDDING_MODEL_ID: str = "sentence-transformers/all-MiniLM-L6-v2"
     EMBEDDING_MODEL_MAX_INPUT_LENGTH: int = 256
     EMBEDDING_SIZE: int = 384
-    EMBEDDING_MODEL_DEVICE: str = "cpu"
-    _file_path: str = 'sdb/dataset.csv'
-
-    OPENAI_MODEL_ID: str = "gpt-4-1106-preview"
-    OPENAI_API_KEY: str = ""
-
-    # QdrantDB config
-    QDRANT_DATABASE_HOST: str = "localhost"
-    QDRANT_DATABASE_PORT: int = 6333
-    QDRANT_DATABASE_URL: str = "http://localhost:6333"
-    QDRANT_CLOUD_URL: str = "str"
-    USE_QDRANT_CLOUD: bool = False
-    QDRANT_APIKEY: str | None = None
+    
+    # Memgraph config
+    MEMGRAPH_URI = "bolt://localhost:7687"
+    
 
 settings = AppSettings()

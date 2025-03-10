@@ -1,49 +1,47 @@
 import streamlit as st
 import logging
-from inference_pipeline import LLMTikTok
-from router import routeLayer
-from moviepy.editor import TextClip, CompositeVideoClip
+from inference_pipeline import LLMArangoInference
 
 # Initialize logger
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Initialize inference endpoint
-inference_endpoint = LLMTikTokVideo()
+inference_endpoint = LLMArangoInference()
 
 # Streamlit app
 st.title("Q/A AI Agent")
 
 st.write("""
-    This is a Video generating AI agent. You can put the prompt and generate the video from the AI.
+    This is a Q/A AI agent. You can put the prompt and get answers from the AI.
 """)
 
 query = st.text_area("Enter your prompt here:")
 
-output_file="output.mp4"
+enable_evaluation = st.checkbox("Enable Evaluation")
 
 if st.button("Submit"):
     if query:
-
         response = inference_endpoint.generate(
             query=query,
-            enable_rag=False,
-            enable_evaluation=True,
-            enable_monitoring=True,
+            enable_evaluation=enable_evaluation,
         )
 
-        # Create a text clip
-        text_clip = TextClip(response, fontsize=70, color='white', size=(1280, 720), bg_color='black')
-        text_clip = text_clip.set_duration(10)  # Set the duration of the text clip
+        # Display the response
+        st.write("MongoDB Response:")
+        st.json(response.get("mongo", {}))
 
-        # Create a composite video clip
-        video = CompositeVideoClip([text_clip])
+        st.write("Memgraph Response:")
+        st.json(response.get("memgraph", {}))
 
-        # Write the video to a file
-        video.write_videofile(output_file, fps=24)
+        if enable_evaluation:
+            st.write("Evaluation Results:")
+            st.json(response.get("evaluation", {}))
 
         # Log the response
-        logger.info(f"Answer: {response['answer']}")
-        logger.info("=" * 50)
-        logger.info(f"LLM Evaluation Result: {response['llm_evaluation_result']}")
+        logger.info(f"MongoDB Response: {response.get('mongo', {})}")
+        logger.info(f"Memgraph Response: {response.get('memgraph', {})}")
+        if enable_evaluation:
+            logger.info(f"Evaluation Results: {response.get('evaluation', {})}")
     else:
-        st.write("Please enter a prompt to generate the video.")
+        st.write("Please enter a prompt to get a response.")

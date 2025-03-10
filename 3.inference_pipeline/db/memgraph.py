@@ -1,17 +1,14 @@
 from neo4j import GraphDatabase
-import pandas as pd
-import os
 import openai
 from typing import List, Dict
+from config import settings
 
-# Set up OpenAI API Key (Replace with your actual key)
-openai.api_key = os.getenv("OPENAI_API_KEY")
+openai.api_key = settings.OPENAI_API_KEY
 
-# Memgraph connection details
-MEMGRAPH_URI = "bolt://localhost:7687"
-AUTH = ("", "")  # No authentication by default for Memgraph
+MEMGRAPH_URI = settings.MEMGRAPH_URI
+AUTH = ("", "")
 
-class MemgraphChatbot:
+class MemgraphSearchConnector:
     def __init__(self, uri, auth):
         self.driver = GraphDatabase.driver(uri, auth=auth)
 
@@ -57,37 +54,10 @@ class MemgraphChatbot:
         Answer the user's question: "{user_query}"
         If you can't find a direct answer, provide the most relevant information from the given data.
         """
-
         # Use OpenAI GPT-4 to generate a response
         response = openai.ChatCompletion.create(
-            model="gpt-4",
+            model=settings.OPENAI_MODEL_ID,
             messages=[{"role": "system", "content": "You are a helpful assistant."},
                       {"role": "user", "content": prompt}]
         )
-        
         return response['choices'][0]['message']['content']
-
-def main():
-    # Initialize chatbot
-    chatbot = MemgraphChatbot(MEMGRAPH_URI, AUTH)
-
-    try:
-        # Import CSV data into Memgraph (replace 'data.csv' with your file path)
-        chatbot.import_csv_to_graph("data.csv")
-
-        print("Chatbot is ready! Type your questions below (type 'exit' to quit).")
-
-        while True:
-            user_input = input("You: ")
-            if user_input.lower() == "exit":
-                break
-
-            # Generate response from the chatbot
-            response = chatbot.generate_response(user_input)
-            print(f"Chatbot: {response}")
-
-    finally:
-        chatbot.close()
-
-if __name__ == "__main__":
-    main()
