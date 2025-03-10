@@ -1,6 +1,8 @@
 .env
 venv
 datasets
+1.datacollection_pipeline/datasets
+
 ### Python ###
 # Byte-compiled / optimized / DLL files
 __pycache__/
