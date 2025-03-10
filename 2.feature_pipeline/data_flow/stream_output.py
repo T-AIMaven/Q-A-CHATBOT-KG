@@ -53,5 +53,4 @@ class MongoKGDataSink(StatelessSinkPartition):
     def write_batch(self, items: list[dict]) -> None:
         collection = self._client["iGenius"]["knowledge_base"]
         index = mongo_dataload_connector.create_new_index(items, collection)
-
         logger.info("Successfully created knowlege graph - {index}")

@@ -9,7 +9,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class CSVSource:
-    def __init__(self, directory='1.datacollection_pipeline'):
+    def __init__(self, directory='1.datacollection_pipeline/datasets'):
         self.directory = directory
         self.files = [os.path.join(directory, f) for f in os.listdir(directory) if f.endswith('.csv')]
         self.current_file_index = 0
