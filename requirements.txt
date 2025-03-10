@@ -10,3 +10,4 @@ pymongo
 pandas
 langchain_experimental
 langchain_openai
+neo4j

@@ -10,8 +10,8 @@ class AppSettings(BaseSettings):
     OPENAI_API_KEY: str = ""
     
     MONGO_DB_URL: str = "mongodb://localhost:27017"
-    MONGO_DB_NAME: str = "product-core"
-    MONGO_COLLECTION_NAME: str = "xngen-knowledge-base"
+    MONGO_DB_NAME: str = "iGenius"
+    MONGO_COLLECTION_NAME: str = "knowledge-base"
     # Embeddings config
     EMBEDDING_MODEL_ID: str = "sentence-transformers/all-MiniLM-L6-v2"
     EMBEDDING_MODEL_MAX_INPUT_LENGTH: int = 256

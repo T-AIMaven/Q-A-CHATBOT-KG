@@ -1,11 +1,9 @@
 from bytewax.outputs import DynamicSink, StatelessSinkPartition
 from pymongo import MongoClient
 from pymongo.errors import CollectionInvalid
-from db.mongo_data_load import MongoDataLoadConnector
-from db.memgraph_data_load import MemgraphDataLoadConnector
-
+from db.mongo import MongoDataLoadConnector
+from db.memgraph import MemgraphDataLoadConnector
 from neo4j import GraphDatabase
-import pandas as pd
 import logging
 
 logger = logging.getLogger(__name__)
@@ -16,7 +14,6 @@ class MongoOutput(DynamicSink):
     Bytewax class that facilitates the connection to a MongoDB.
     Inherits DynamicSink because of the ability to create different sink sources (e.g., vector and non-vector collections)
     """
-
     def __init__(self, connection: MongoClient, sink_type: str):
         self._connection = connection
         self._sink_type = sink_type
@@ -44,7 +41,6 @@ class MemgraphOutput(DynamicSink):
     Bytewax class that facilitates the connection to Memgraph.
     Inherits DynamicSink because of the ability to create different sink sources (e.g., vector and non-vector collections)
     """
-
     def __init__(self, uri: str, auth: tuple, sink_type: str):
         self._uri = uri
         self._auth = auth

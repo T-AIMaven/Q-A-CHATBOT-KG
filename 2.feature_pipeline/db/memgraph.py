@@ -3,13 +3,11 @@ import pandas as pd
 import os
 import openai
 from typing import List, Dict
+from config import settings
 
-# Set up OpenAI API Key (Replace with your actual key)
-openai.api_key = os.getenv("OPENAI_API_KEY")
-
-# Memgraph connection details
-MEMGRAPH_URI = "bolt://localhost:7687"
-AUTH = ("", "")  # No authentication by default for Memgraph
+openai.api_key = os.getenv(settings.OPENAI_API_KEY)
+MEMGRAPH_URI = settings.MEMGRAPH_URI
+AUTH = ("", "")
 
 class MemgraphDataLoadConnector:
     def __init__(self, uri, auth):
@@ -33,7 +31,6 @@ class MemgraphDataLoadConnector:
                 MERGE (n:{column} {{value: value}})
                 """
                 session.run(query, values=df[column].unique().tolist())
-
             # Create relationships between nodes in adjacent columns
             for i in range(len(columns) - 1):
                 col1, col2 = columns[i], columns[i+1]
@@ -95,25 +92,3 @@ class MemgraphDataLoadConnector:
         )
         
         return response['choices'][0]['message']['content']
-
-def main():
-    # Initialize chatbot
-    chatbot = MemgraphChatbot(MEMGRAPH_URI, AUTH)
-
-    try:
-        # Import CSV data into Memgraph (replace 'data.csv' with your file path)
-        chatbot.import_csv_to_graph("data.csv")
-
-        print("Chatbot is ready! Type your questions below (type 'exit' to quit).")
-
-        while True:
-            user_input = input("You: ")
-            if user_input.lower() == "exit":
-                break
-
-            # Generate response from the chatbot
-            response = chatbot.generate_response(user_input)
-            print(f"Chatbot: {response}")
-
-    finally:
-        chatbot.close()

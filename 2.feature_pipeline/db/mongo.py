@@ -6,21 +6,17 @@ from llama_index.llms.langchain import LangChainLLM
 from llama_index.core.node_parser import TokenTextSplitter
 from llama_index.core import load_index_from_storage
 
-from app.config.config import settings
-
 from langchain_openai import ChatOpenAI
 from pymongo import MongoClient
 from pymongo.collection import Collection
 from bson import json_util
 from dotenv import load_dotenv
-from typing import List
+from config import settings
 import pandas as pd
 import logging
 import time
 import json
 import math
-import os
-import io
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -30,9 +26,9 @@ load_dotenv()
 embedding_model = HuggingFaceEmbedding(model_name=settings.EMBEDDING_MODEL_ID)
 
 # MongoDB setup
-client = MongoClient(settings.MONGO_DATABASE_HOST)
+client = MongoClient(settings.MONGO_DB_URL)
 db = client[settings.MONGO_COLLECTION_NAME]
-index_collection = db[settings.MONGO_STRUCTURED_COLLECTION_NAME]
+index_collection = db[settings.MONGO_COLLECTION_NAME]
 
 def split_metadata(metadata, max_length=1000):
     if len(json.dumps(metadata)) <= max_length:
@@ -48,15 +44,12 @@ def split_metadata(metadata, max_length=1000):
 
 class MongoDataLoadConnector:
     def __init__(self):
-        self.documents = self.load_documents()
         self.llm = self.setup_llm()
         self.embedding = embedding_model
-        # self.index = self.create_or_load_index("nereus")
+        # self.index = self.create_index("9327bd69-78cf-4591-b06f-86509cb375d8")
+        # collection = self._client[settings.MONGO_DB_NAME][settings.MONGO_COLLECTION_NAME]
 
     def load_documents(self, items: list[dict]) -> None:
-        collection = self._client["iGenius"]["knowledge_base"]
-        
-        # Convert list[dict] to list[Document]
         documents = []
         for item in items:
             doc_id = str(len(documents))
@@ -68,19 +61,12 @@ class MongoDataLoadConnector:
                 # metadata=metadata
             )
             documents.append(doc)
-        
-        # # Insert documents into MongoDB
-        # collection.insert_many(items)
-        # logger.info("Successfully inserted vector data points", num=len(items))
-
-        # Load documents into the knowledge graph
-        # mongo_dataload_connector.load_documents(documents)
         return documents
 
     def setup_llm(self) -> LangChainLLM:
         return LangChainLLM(llm=ChatOpenAI(model=settings.OPENAI_MODEL_ID, api_key=settings.OPENAI_API_KEY))
 
-    def create_or_load_index(self, customer_id: str) -> KnowledgeGraphIndex:
+    def create_index(self, customer_id: str) -> KnowledgeGraphIndex:
         index_chunks = list(index_collection.find({"customer_id": customer_id}).sort("chunk_index", 1))
         if index_chunks:
             start_time = time.time()
@@ -122,7 +108,7 @@ class MongoDataLoadConnector:
         logger.info(f"Create new index time: {end_time - start_time} seconds")
         return index
 
-    def save_index_to_mongodb(self, index: KnowledgeGraphIndex, collection: Collection):#, customer_id: str):
+    def save_index_to_mongodb(self, index: KnowledgeGraphIndex, collection: Collection, customer_id: str):
         start_time = time.time()
         storage_context = index.storage_context
         serialized_context = storage_context.to_dict()
@@ -131,7 +117,7 @@ class MongoDataLoadConnector:
         chunk_size = 15 * 1024 * 1024  # 15MB chunks
         total_chunks = math.ceil(len(index_json) / chunk_size)
         
-        # index_collection.delete_many({"customer_id": customer_id})
+        index_collection.delete_many({"customer_id": customer_id})
         
         for i in range(total_chunks):
             start = i * chunk_size
@@ -139,7 +125,7 @@ class MongoDataLoadConnector:
             chunk = index_json[start:end]
             
             collection.insert_one({
-                # "customer_id": customer_id,
+                "customer_id": customer_id,
                 "chunk_index": i,
                 "total_chunks": total_chunks,
                 "data": chunk
@@ -166,14 +152,5 @@ class MongoDataLoadConnector:
 def structured_search_query(query: str) -> dict:
     connector = StructuredSearchConnector()
     return connector.structured_search_index(query=query)
-
-# if __name__ == "__main__":
-#     start_time = time.time()
-#     # Example usage
-#     query = "who is the CEO of Xngen AI?"
-#     response = structured_search_query(query=query)
-#     print(response)
-#     end_time = time.time()
-#     logger.info(f"total time: {end_time - start_time} seconds")
 
 StructuredSearchConnector = MongoDataLoadConnector()

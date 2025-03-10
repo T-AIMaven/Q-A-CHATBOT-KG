@@ -1,15 +1,14 @@
 import pandas as pd
 import os
 import logging
-
-from feature_pipeline.utils.config import settings
+from config import settings
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class CSVSource:
-    def __init__(self, directory='1.datacollection_pipeline/datasets'):
+    def __init__(self, directory=settings._file_path):
         self.directory = directory
         self.files = [os.path.join(directory, f) for f in os.listdir(directory) if f.endswith('.csv')]
         self.current_file_index = 0
@@ -21,7 +20,7 @@ class CSVSource:
         if self.current_file_index < len(self.files):
             file_path = self.files[self.current_file_index]
             try:
-                self.df = pd.read_csv(file_path, encoding="latin1")  # Specify the encoding
+                self.df = pd.read_csv(file_path, encoding="latin1")
                 self.index = 0  # Initialize an index to track the current row
                 logger.info(f"Successfully loaded CSV file from {file_path}")
                 self.current_file_index += 1

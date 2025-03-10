@@ -11,3 +11,16 @@ langchain_experimental
 sentence-transformers
 semantic-router
 streamlit
+neo4j
+llama-index
+llama-index-embeddings-huggingface
+transformers
+pyvis
+llama-index-llms-langchain
+langchain_community
+langchain_openai
+python-dotenv
+pymongo
+pandas
+langchain_experimental
+langchain_openai
