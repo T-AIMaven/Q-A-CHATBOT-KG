@@ -12,17 +12,12 @@ class LLMArangoML:
             api_key=settings.OPENAI_API_KEY,
             temperature=0,
         )
-        self.chain = GeneralChain().get_chain(
-            llm=self.model, output_key="answer"
-        )
         self.connector = StructuredSearchConnector()
 
     def generate(
         self,
         query: str,
-        mechanism: str,
         enable_evaluation: bool = False,
-        enable_monitoring: bool = True,
     ) -> dict:
         response = self.connector.structured_search_index(query=query)
 

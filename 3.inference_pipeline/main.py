@@ -23,11 +23,9 @@ output_file="output.mp4"
 
 if st.button("Submit"):
     if query:
-        mechanism = routeLayer.route(query).name
 
         response = inference_endpoint.generate(
             query=query,
-            mechanism=mechanism,
             enable_rag=False,
             enable_evaluation=True,
             enable_monitoring=True,
